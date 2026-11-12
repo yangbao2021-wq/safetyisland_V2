@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>工安島 3D｜倉儲工安風險地圖</title>
+<style>
+:root{--ink:#1d2b36;--card:#fffffff0;--mut:#5b6b77;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--ink:#e6eef3;--card:#16242ff0;--mut:#9fb2bf}}
+:root[data-theme="dark"]{color-scheme:dark;--ink:#e6eef3;--card:#16242ff0;--mut:#9fb2bf}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;background:#cfe9f5;color:var(--ink);font-family:system-ui,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;overflow:hidden}
+#app{position:relative;height:100%}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+#top{position:absolute;left:0;right:0;top:0;padding:8px 10px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+#top h1{margin:0;font-size:18px;color:var(--ink);text-shadow:0 0 6px var(--card)}#top h1 small{font-weight:400;color:var(--mut);font-size:12px;margin-left:6px}
+#chips{display:flex;gap:6px;overflow-x:auto;pointer-events:auto;padding-bottom:2px;scrollbar-width:none}
+#chips button{flex:none;border:0;border-radius:99px;padding:6px 12px;background:var(--card);color:var(--ink);font-size:13px;cursor:pointer;box-shadow:0 1px 4px #0003}
+#bar{position:absolute;left:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px}
+#bar button{width:42px;height:42px;border:0;border-radius:12px;background:var(--card);color:var(--ink);font-size:19px;cursor:pointer;box-shadow:0 1px 5px #0004}
+#bar button.on{background:#ffd43b;color:#1d2b36}
+#p{position:absolute;right:12px;top:84px;width:320px;max-height:calc(100% - 100px);overflow:auto;background:var(--card);border-radius:16px;padding:14px;box-shadow:0 4px 18px #0004;display:none;backdrop-filter:blur(6px)}
+#p h2{margin:0 0 4px;font-size:20px}#p .o{color:var(--mut);font-size:13px;margin:2px 0}
+.r{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:10px;margin-top:6px;background:#8881}
+.r.on{background:#ffe06655;outline:2px solid #d9480f}.r b{display:block;font-size:14px}.r span{font-size:12px;color:var(--mut)}.r i{font-style:normal;font-size:22px}
+#x{position:absolute;right:10px;top:8px;border:0;background:none;color:var(--ink);font-size:20px;cursor:pointer}
+#hint{position:absolute;right:12px;bottom:10px;font-size:11px;color:var(--mut);pointer-events:none}
+@media(max-width:700px){#p{left:8px;right:8px;top:auto;bottom:30px;width:auto;max-height:42%}#hint{display:none}#bar button{width:38px;height:38px;font-size:17px}#bar{gap:5px}}
+.qb{margin-top:10px;padding:10px;border-radius:10px;background:#8881}.qt{font-size:14px;font-weight:700;margin-bottom:6px}
+.qo{display:block;width:100%;text-align:left;margin-top:5px;padding:8px 10px;border-radius:8px;border:1.5px solid #8885;background:var(--card);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.qo.ok{background:#b2f2bb;border-color:#2f9e44;color:#14532d}.qo.bad{background:#ffc9c9;border-color:#e03131;color:#7f1d1d;opacity:.85}
+.qo:disabled:not(.ok):not(.bad){opacity:.55;cursor:default}.fb{font-size:12px;margin-top:6px;color:var(--mut)}
+#prog{align-self:flex-start;background:var(--card);color:var(--ink);border-radius:14px;padding:5px 12px;font-size:12px;pointer-events:auto;box-shadow:0 1px 4px #0003;min-width:150px}
+#prog .bar{height:5px;background:#8883;border-radius:3px;margin-top:3px;overflow:hidden}#prog .bar i{display:block;height:100%;background:#2f9e44;transition:width .4s}
+#prog.full{background:#ffd43b;color:#1d2b36;cursor:pointer;font-weight:700}
+#toast{position:fixed;left:50%;top:100px;transform:translate(-50%,-20px);background:#2f9e44;color:#fff;padding:8px 16px;border-radius:99px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:40}#toast.show{opacity:1;transform:translate(-50%,0)}
+#ft{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:12px;color:var(--mut);pointer-events:none;z-index:5;text-shadow:0 0 4px var(--card),0 0 8px var(--card)}
+#cert{display:none;position:fixed;inset:0;z-index:50;background:#000a;align-items:center;justify-content:center;padding:12px}
+.paper{position:relative;background:#fffaf0;color:#3b2f1e;border:6px double #c9971c;border-radius:10px;padding:22px 20px;max-width:520px;width:100%;max-height:92%;overflow:auto;text-align:center;box-shadow:0 10px 40px #000a;animation:pop .5s}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.paper h2{margin:6px 0 0;font-size:30px;color:#a4161a;letter-spacing:4px}.paper .en{font-size:11px;letter-spacing:3px;color:#8a6d1d;margin-bottom:10px}
+.paper input{font:inherit;font-size:24px;font-weight:700;text-align:center;border:0;border-bottom:2px solid #c9971c;background:transparent;color:#3b2f1e;width:70%;margin:4px 0 10px;outline:0}
+.paper p{margin:6px 0;font-size:14px;line-height:1.7}.zs{font-size:22px;margin:8px 0}.dt{font-size:13px;color:#8a6d1d}
+.seal{position:absolute;right:14px;top:14px;width:54px;height:54px;border-radius:50%;border:3px solid #c92a2a;color:#c92a2a;display:flex;align-items:center;justify-content:center;font-weight:800;transform:rotate(-14deg);font-size:15px}
+.bt{display:flex;gap:10px;justify-content:center;margin-top:14px}.bt button{border:0;border-radius:10px;padding:9px 16px;font-size:14px;cursor:pointer;background:#c9971c;color:#fff}.bt button+button{background:#e9dfc8;color:#3b2f1e}
+.cf{position:fixed;top:-40px;z-index:60;pointer-events:none;animation:fall linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+</style></head><body><div id="app"><canvas id="c"></canvas>
+<div id="top"><h1>⛑️ 工安島 3D<small>拖曳旋轉・雙指縮放／平移・點選設備看細節</small></h1><div id="chips"></div><div id="prog"></div></div>
+<div id="bar"><button id="zi" aria-label="放大">＋</button><button id="zo" aria-label="縮小">－</button><button id="rl" aria-label="左轉">↺</button><button id="rr" aria-label="右轉">↻</button><button id="tv" aria-label="俯視">⬆</button><button id="iv" aria-label="斜視重置">◢</button><button id="ar" aria-label="自動旋轉">🔄</button></div>
+<div id="p"><button id="x" aria-label="關閉">✕</button><div id="pc"></div></div>
+<div id="hint">左鍵旋轉・右鍵平移・滾輪縮放</div>
+<div id="ft">Design by Jack Yang</div><div id="toast"></div>
+<div id="cert"><div class="paper"><div class="seal">合格</div><div style="font-size:42px">⛑️</div><h2>工安合格證書</h2><div class="en">CERTIFICATE OF SAFETY</div><p>茲證明</p><input id="nm" placeholder="（點此輸入姓名）" maxlength="12"><p>已完成「工安島」八大庫區安全知識測驗<br>成績合格，特頒此證，以資鼓勵。</p><div class="zs">📦 ❄️ 🎁 🧪 🪵 🪚 🤖 💥</div><div class="dt" id="cd"></div><div class="bt"><button id="c1">繼續探索</button><button id="c2">重新挑戰</button></div></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const R={'物料堆疊':['📦','限高堆疊、重心平穩、貨架限載'],'電動搬運車':['🛒','限速行駛、禁止載人、行人優先'],'堆高機':['🚜','持證操作、貨叉低位行駛、鳴笛'],'拆箱作業':['🔪','安全刀具、防割手套、廢料即清'],'穿防寒衣':['🧥','限時停留、防滑鞋、體溫監控'],'釘鎗作業':['🔫','護目鏡、防誤擊、斷氣源'],'高空作業車':['🏗️','安全帶、護欄、地面平穩'],'集塵器':['🌀','粉塵清理、防火防爆、定期保養'],'立式裁板機':['🪚','護罩完整、雙手操作、停機清料'],'固定式起重機':['⛓️','吊具檢點、禁止吊物下、荷重標示'],'化學品洩漏':['☣️','防漏托盤、SDS、吸附材'],'側移式堆高機':['🚛','窄道限速、視線確認、貨物固定'],'護膜機':['🎞️','防夾護罩、緊急停止、長髮束起'],'臥式鋸床':['⚙️','護罩、固定工件、防切屑'],'立式鋸床':['🪚','鋸帶檢查、護手、停機換刀'],'圓盤鋸床':['⭕','護蓋、鎖定夾具、護目'],'龍門鋸床':['🏭','走道隔離、行程防撞、上鎖掛牌'],'砂輪切割機':['✨','護目面罩、砂輪檢查、火花隔離'],'自動倉儲操作':['🤖','入內停機上鎖、感應門、通道淨空'],'爆材管理':['🧨','專人管制、數量帳務、隔離存放'],'防靜電':['⚡','接地、防靜電鞋手環、禁手機']};
+const Z=[
+{n:'一般庫房',e:'📦',c:'#d8b878',o:'日常收發、揀貨與拆箱',f:'收貨→檢核→上架→揀貨→出庫',r:['物料堆疊','電動搬運車','堆高機','拆箱作業']},
+{n:'冷凍庫',e:'❄️',c:'#a9d8ee',o:'低溫存放、防寒作業',f:'更衣→進庫→存取→出庫→復溫',r:['堆高機','穿防寒衣','物料堆疊']},
+{n:'包裝區',e:'🎁',c:'#e8c58f',o:'裁板、釘箱、包裝出貨',f:'裁板→組箱→釘封→護角→吊運出貨',r:['釘鎗作業','堆高機','高空作業車','集塵器','立式裁板機','固定式起重機']},
+{n:'化材庫',e:'🧪',c:'#a8d9a0',o:'化學材料儲存與領用',f:'驗收→分區存放→領料登記→洩漏巡檢',r:['物料堆疊','化學品洩漏','堆高機']},
+{n:'原物料庫',e:'🪵',c:'#c9a27a',o:'大宗原料入庫與護膜',f:'卸貨→護膜→吊放→側移入庫',r:['物料堆疊','側移式堆高機','堆高機','護膜機','固定式起重機']},
+{n:'下料區',e:'🪚',c:'#f0b27a',o:'板材與型材鋸切下料',f:'領料→定尺→鋸切→砂輪修邊→送料',r:['臥式鋸床','立式鋸床','圓盤鋸床','龍門鋸床','砂輪切割機']},
+{n:'自動倉儲',e:'🤖',c:'#b6b8ee',o:'無人搬運與自動揀取',f:'入庫掃碼→ASRS存取→出庫口→人工複核',r:['物料堆疊','堆高機','自動倉儲操作']},
+{n:'爆材庫',e:'💥',c:'#ee9a9a',o:'爆炸性材料管制存放',f:'領用審核→消除靜電→點收→入庫上鎖',r:['物料堆疊','爆材管理','防靜電']}];
+const $=s=>document.querySelector(s),app=$('#app'),cv=$('#c');
+if(!window.THREE||!THREE.OrbitControls){app.insertAdjacentHTML('beforeend','<p style="padding:90px 20px">3D 函式庫載入失敗，請重新整理。</p>');throw 0}
+const dark=matchMedia('(prefers-color-scheme: dark)').matches&&document.documentElement.dataset.theme!=='light';
+const V=(x,y,z)=>new THREE.Vector3(x,y,z),GY=14,IR=115;
+document.body.style.background=dark?'#0a1a24':'#cfe9f5';
+const ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;
+const sc=new THREE.Scene();sc.background=new THREE.Color(dark?'#0a1a24':'#cfe9f5');sc.fog=new THREE.Fog(sc.background,2600,7000);
+const cam=new THREE.PerspectiveCamera(45,1,5,9000);
+const oc=new THREE.OrbitControls(cam,cv);oc.enableDamping=true;oc.dampingFactor=.08;oc.maxPolarAngle=Math.PI/2-.04;oc.minDistance=50;oc.maxDistance=4500;oc.screenSpacePanning=true;oc.autoRotateSpeed=1.2;
+sc.add(new THREE.HemisphereLight('#ffffff',dark?'#1c3b4d':'#6fa8c9',dark?.55:.85));
+const sun=new THREE.DirectionalLight('#fff',dark?.6:.9);sun.position.set(350,600,250);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-720,right:720,top:720,bottom:-720,near:100,far:1600});sc.add(sun);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(9000,9000),new THREE.MeshStandardMaterial({color:dark?'#124a6b':'#3a9ad0',roughness:.35,metalness:.1}));water.rotation.x=-Math.PI/2;water.receiveShadow=true;sc.add(water);
+/* helpers */
+const MT={},AN=[],LB=[],mat=c=>MT[c]||(MT[c]=new THREE.MeshStandardMaterial({color:c,roughness:.65,metalness:.05}));
+function box(w,h,d,c,x,y,z,p){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));m.position.set(x,y+h/2,z);m.castShadow=m.receiveShadow=true;p&&p.add(m);return m}
+function cyl(r,h,c,x,y,z,p,sg){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,sg||24),mat(c));m.position.set(x,y+h/2,z);m.castShadow=m.receiveShadow=true;p&&p.add(m);return m}
+function wheel(r,x,y,z,p){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,3,16),mat('#212529'));m.rotation.z=Math.PI/2;m.position.set(x,y,z);m.castShadow=true;p.add(m)}
+function spr(ls,o){o=o||{};const c=document.createElement('canvas'),x=c.getContext('2d'),tx=new THREE.CanvasTexture(c),s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false}));s.renderOrder=10;if(!o.pick)s.raycast=()=>{};
+s.set=t=>{t=[].concat(t);const f=o.fs||28,pd=10,fh=f*1.25;x.font=`700 ${f}px sans-serif`;const w=Math.ceil(Math.max(...t.map(l=>x.measureText(l).width))+pd*2),h=Math.ceil(t.length*fh+pd);c.width=w;c.height=h;x.font=`700 ${f}px sans-serif`;
+if(o.bg){x.fillStyle=o.bg;x.beginPath();x.roundRect?x.roundRect(0,0,w,h,14):x.rect(0,0,w,h);x.fill()}x.fillStyle=o.fg||'#1d2b36';x.textAlign='center';x.textBaseline='middle';t.forEach((l,i)=>x.fillText(l,w/2,pd/2+fh*(i+.5)));tx.needsUpdate=true;s.scale.set(w*(o.k||.2),h*(o.k||.2),1)};s.set(ls);return s}
+function person(vest,parka){const g=new THREE.Group(),b=parka?'#1c7ed6':vest;
+g.userData.legs=[-1.8,1.8].map(x=>{const l=new THREE.Group();l.position.set(x,6,0);box(2.6,6,2.8,'#34495e',0,-6,0,l);g.add(l);return l});
+box(8,7.5,4.6,b,0,6,0,g);box(8.2,1.2,4.8,'#ffe066',0,9,0,g);
+const hd=new THREE.Mesh(new THREE.SphereGeometry(2.8,14,10),mat('#f2c9a0'));hd.position.y=16.2;hd.castShadow=true;g.add(hd);
+const hm=new THREE.Mesh(new THREE.SphereGeometry(3.2,14,8,0,6.283,0,1.57),mat(parka?'#f1f3f5':'#ffd21f'));hm.position.y=parka?15.8:16.5;g.add(hm);
+g.userData.arms=[-5.2,5.2].map(x=>{const a=new THREE.Group();a.position.set(x,13,0);box(2,6.5,2.2,b,0,-6.5,0,a);g.add(a);return a});return g}
+/* props */
+function forklift(c,side){const g=new THREE.Group();box(11,6,18,c,0,3,-2,g);box(11,2,6,'#343a40',0,9,-8,g);[[-6,-8],[6,-8],[-6,5],[6,5]].forEach(([x,z])=>wheel(3.2,x,3.2,z,g));
+[-5,5].forEach(x=>[-7,0].forEach(z=>box(.8,12,.8,'#212529',x,9,z,g)));box(12,.8,9,'#212529',0,21,-3.5,g);[-4,4].forEach(x=>box(1.4,26,1.4,'#495057',x,0,9,g));
+const cr=new THREE.Group();cr.position.set(0,2,10);g.add(cr);box(11,3,1,'#495057',0,0,0,cr);[-3.5,3.5].forEach(x=>box(1.6,.8,13,'#adb5bd',x,0,6.5,cr));box(9,7,9,'#c8a165',0,.8,6.5,cr);
+const p=person('#f76707');p.scale.setScalar(.55);p.position.set(0,8,-4);g.add(p);
+AN.push(t=>{cr.position.y=2+(Math.sin(t*.8+g.id)+1)*8;if(side)cr.position.x=Math.sin(t*1.3)*3});return g}
+function stack(){const g=new THREE.Group(),cs=['#c8a165','#d4b077','#bf9556'];box(26,2,26,'#a9824f',0,0,0,g);for(let l=0;l<3;l++)for(let i=0;i<2;i++)for(let j=0;j<2;j++)box(11,9,11,cs[(i+j+l)%3],-6+i*12,2+l*9,-6+j*12,g);return g}
+function jack(){const g=new THREE.Group();box(9,6,9,'#1971c2',0,2,-4,g);[-3.5,3.5].forEach(x=>box(2.5,1.5,16,'#868e96',x,0,6,g));box(1.2,16,1.2,'#343a40',0,6,-8,g);box(5,1.2,1.2,'#e03131',0,22,-8,g);box(14,1.5,14,'#a9824f',0,1.5,7,g);box(12,10,12,'#c8a165',0,3,7,g);return g}
+function unbox(){const g=new THREE.Group();box(22,8,16,'#868e96',0,0,0,g);box(12,8,10,'#d4b077',0,8,0,g);[-1,1].forEach(s=>{const f=new THREE.Group();f.position.set(0,16,s*5);f.rotation.x=s*.9;box(12,.6,5,'#c8a165',0,0,-s*2.5,f);g.add(f)});
+const k=box(1,.8,5,'#e03131',0,16.5,0,g);AN.push(t=>{k.position.x=Math.sin(t*3)*4});return g}
+function parkaP(){const g=new THREE.Group();box(18,28,2,'#e9ecef',0,0,-8,g);box(10,20,.6,'#74c0fc',0,0,-6.8,g);const p=person('#1c7ed6',1);p.scale.setScalar(1.15);p.position.z=4;g.add(p);AN.push(t=>{p.userData.arms[0].rotation.x=Math.sin(t*3)*.3});return g}
+function nailer(){const g=new THREE.Group();box(22,8,16,'#adb5bd',0,0,0,g);box(12,8,10,'#c8a165',0,8,0,g);const n=new THREE.Group();n.position.set(3,17,0);box(2,2,7,'#212529',0,0,0,n);box(1.4,5,1.4,'#e8590c',0,-5,2.5,n);g.add(n);AN.push(t=>{n.position.y=17+Math.max(0,Math.sin(t*6))*3});return g}
+function lift(){const g=new THREE.Group();box(18,4,13,'#f59f00',0,2,0,g);[[-7,-5],[7,-5],[-7,5],[7,5]].forEach(([x,z])=>wheel(2.2,x,2.2,z,g));const m=box(3,1,3,'#868e96',0,6,0,g),pf=new THREE.Group();g.add(pf);box(16,1.5,12,'#495057',0,0,0,pf);
+[[0,5.5,16,.8],[0,-5.5,16,.8]].forEach(a=>box(a[2],.8,.8,'#f03e3e',a[0],6,a[1],pf));[-7.5,7.5].forEach(x=>{box(.8,.8,11,'#f03e3e',x,6,0,pf);[-5.5,5.5].forEach(z=>box(.8,6,.8,'#f03e3e',x,1.5,z,pf))});const w=person('#2f9e44');w.scale.setScalar(.5);w.position.y=1.5;pf.add(w);
+AN.push(t=>{const y=16+(Math.sin(t*.6)+1)*9;pf.position.y=y;m.scale.y=y-6;m.position.y=6+(y-6)/2});return g}
+function dust(){const g=new THREE.Group();[0,1,2].forEach(i=>{const a=i*2.094;box(1,10,1,'#495057',Math.cos(a)*6,0,Math.sin(a)*6,g)});const c=new THREE.Mesh(new THREE.ConeGeometry(8,10,20),mat('#adb5bd'));c.rotation.x=Math.PI;c.position.y=15;c.castShadow=true;g.add(c);cyl(8,20,'#adb5bd',0,20,0,g);cyl(4,5,'#e67700',0,5,0,g);box(3,3,16,'#868e96',0,36,-10,g);cyl(9,2,'#495057',0,40,0,g);return g}
+function panelSaw(){const g=new THREE.Group();box(30,3,14,'#495057',0,0,0,g);[-14,14].forEach(x=>box(2,38,2,'#e03131',x,3,-4,g));box(30,2,2,'#e03131',0,39,-4,g);box(24,26,1.5,'#e9d8a6',0,6,2,g);const cb=new THREE.Group();g.add(cb);box(28,3,3,'#c92a2a',0,0,-4,cb);box(6,6,5,'#212529',0,-3,0,cb);AN.push(t=>{cb.position.y=8+(Math.sin(t*.9)+1)*13});return g}
+function crane(){const g=new THREE.Group();[-16,16].forEach(x=>box(2.5,44,2.5,'#f08c00',x,0,0,g));box(40,3,5,'#f08c00',0,44,0,g);const tr=new THREE.Group();tr.position.y=44;g.add(tr);box(6,3,6,'#212529',0,-3,0,tr);box(.6,16,.6,'#212529',0,-19,0,tr);box(3,3,3,'#fab005',0,-22,0,tr);box(12,6,12,'#868e96',0,-28,0,tr);AN.push(t=>{tr.position.x=Math.sin(t*.7)*10});return g}
+function chem(){const g=new THREE.Group();box(30,1.5,24,'#ffd43b',0,0,0,g);[[-8,-4,'#2f9e44'],[6,-5,'#1971c2'],[0,6,'#f08c00']].forEach(a=>cyl(5,13,a[2],a[0],1.5,a[1],g));const pd=new THREE.Mesh(new THREE.CircleGeometry(11,24),new THREE.MeshBasicMaterial({color:'#69db7c',transparent:true,opacity:.65}));pd.rotation.x=-Math.PI/2;pd.position.set(8,1.7,9);g.add(pd);AN.push(t=>pd.scale.setScalar(1+.12*Math.sin(t*3)));return g}
+function wrap(){const g=new THREE.Group();cyl(13,2,'#868e96',0,0,0,g);const ld=new THREE.Group();ld.position.y=2;g.add(ld);box(14,1.5,14,'#a9824f',0,0,0,ld);box(12,12,12,'#c8a165',0,1.5,0,ld);const f=new THREE.Mesh(new THREE.CylinderGeometry(9.5,9.5,15,20),new THREE.MeshBasicMaterial({color:'#fff',transparent:true,opacity:.35}));f.position.y=9;ld.add(f);box(3,32,3,'#e03131',-16,0,0,g);cyl(2.5,8,'#f1f3f5',-13,12,0,g);AN.push(t=>{ld.rotation.y=t*.9});return g}
+function blade(r){const w=new THREE.Group(),b=new THREE.Group();w.rotation.x=Math.PI/2;w.add(b);const d=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.6,28),mat('#ced4da'));b.add(d);for(let i=0;i<10;i++){const a=i*.628,t=new THREE.Mesh(new THREE.BoxGeometry(1.4,.8,1.4),mat('#e03131'));t.position.set(Math.cos(a)*r,0,Math.sin(a)*r);b.add(t)}b.add(new THREE.Mesh(new THREE.BoxGeometry(r*1.6,.8,1),mat('#495057')));AN.push(t=>{b.rotation.y=t*14});return w}
+function saw(k){const g=new THREE.Group();box(32,8,22,'#495057',0,0,0,g);const wk=box(26,4,8,'#868e96',0,8,0,g);
+if(k==='h'){box(4,28,4,'#c92a2a',-14,8,-6,g);const a=new THREE.Group();a.position.set(-14,30,-6);g.add(a);box(30,3,4,'#c92a2a',15,0,0,a);const b=blade(7);b.position.set(22,-5,6);a.add(b);AN.push(t=>{a.rotation.z=-(.15+.15*Math.sin(t*1.2))})}
+if(k==='v'){box(4,50,4,'#c92a2a',-14,8,0,g);[18,44].forEach(y=>{const b=blade(6);b.position.set(0,y,0);g.add(b)});[-6,6].forEach(x=>box(.6,26,1.8,'#dee2e6',x,18,0,g));box(26,3,4,'#c92a2a',-1,56,0,g)}
+if(k==='d'){box(4,26,4,'#c92a2a',-14,8,-6,g);box(14,3,3,'#c92a2a',-7,32,-6,g);const b=blade(11);b.position.set(0,20,0);g.add(b);AN.push(t=>{wk.position.x=Math.sin(t)*6})}
+if(k==='g'){[-15,15].forEach(x=>box(3,36,3,'#1971c2',x,8,0,g));box(34,3,4,'#1971c2',0,44,0,g);const c=new THREE.Group();c.position.y=44;g.add(c);box(5,5,5,'#212529',0,-5,0,c);box(1,22,1,'#adb5bd',0,-26,0,c);const b=blade(6);b.position.set(0,-27,0);c.add(b);AN.push(t=>{c.position.x=Math.sin(t*.9)*10})}
+if(k==='a'){box(6,6,10,'#e03131',0,14,-2,g);const b=blade(5);b.position.set(0,17,6);g.add(b);const N=40,ps=new Float32Array(N*3),vs=[];for(let i=0;i<N;i++)vs.push([0,0,0]);const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(ps,3));const pt=new THREE.Points(pg,new THREE.PointsMaterial({color:'#ffa94d',size:1.8}));pt.frustumCulled=false;g.add(pt);
+AN.push((t,dt)=>{for(let i=0;i<N;i++){let y=ps[i*3+1];if(y<9||!vs[i][1]){ps[i*3]=0;ps[i*3+1]=11;ps[i*3+2]=8;vs[i]=[(Math.random()-.5)*14,Math.random()*16,Math.random()*18]}const v=vs[i];v[1]-=40*dt;ps[i*3]+=v[0]*dt;ps[i*3+1]+=v[1]*dt;ps[i*3+2]+=v[2]*dt}pg.attributes.position.needsUpdate=true})}
+return g}
+function asrs(){const g=new THREE.Group();[-12,12].forEach(x=>[-8,8].forEach(z=>box(2,48,2,'#1971c2',x,0,z,g)));const cs=['#c8a165','#74c0fc','#ffd43b','#ff8787'];[8,22,36].forEach((y,l)=>{box(26,1,18,'#adb5bd',0,y,0,g);[-7,0,7].forEach((x,i)=>box(6,7,12,cs[(l+i)%4],x,y+1,0,g))});const sh=box(10,6,10,'#e8590c',0,0,0,g);box(1.5,1.5,1.5,'#ff0000',0,6,0,sh);AN.push(t=>{sh.position.y=8+(Math.sin(t*.7)+1)*14;sh.position.x=Math.sin(t*.4)*6});return g}
+function bunker(){const g=new THREE.Group();box(28,14,20,'#c92a2a',0,0,0,g);box(30,2,22,'#862e2e',0,14,0,g);box(10,10,.6,'#343a40',0,0,10.2,g);[-8,8].forEach(x=>box(1,5,.8,'#fcc419',x,1,10.4,g));
+for(let i=0;i<8;i++){const a=i*.785;box(1,8,1,'#fcc419',Math.cos(a)*21,0,Math.sin(a)*19,g)}const lm=new THREE.MeshStandardMaterial({color:'#ff0000',emissive:'#ff0000'}),l=new THREE.Mesh(new THREE.SphereGeometry(1.8,12,8),lm);l.position.set(0,18,0);g.add(l);AN.push(t=>{lm.emissiveIntensity=.2+Math.abs(Math.sin(t*4))});return g}
+function esd(){const g=new THREE.Group();box(26,.8,20,'#2b8a3e',0,0,0,g);box(18,7,10,'#868e96',0,.8,0,g);box(1.6,22,1.6,'#212529',-9,.8,-6,g);box(.6,.6,16,'#40c057',-9,1.5,2,g);const p=person('#f76707');p.scale.setScalar(.7);p.position.set(6,.8,8);g.add(p);AN.push(t=>{p.userData.arms[1].rotation.x=-.6+Math.sin(t*2)*.2});return g}
+const B={'物料堆疊':stack,'電動搬運車':jack,'堆高機':()=>forklift('#fab005'),'側移式堆高機':()=>forklift('#e8590c',1),'拆箱作業':unbox,'穿防寒衣':parkaP,'釘鎗作業':nailer,'高空作業車':lift,'集塵器':dust,'立式裁板機':panelSaw,'固定式起重機':crane,'化學品洩漏':chem,'護膜機':wrap,'臥式鋸床':()=>saw('h'),'立式鋸床':()=>saw('v'),'圓盤鋸床':()=>saw('d'),'龍門鋸床':()=>saw('g'),'砂輪切割機':()=>saw('a'),'自動倉儲操作':asrs,'爆材管理':bunker,'防靜電':esd};
+/* world */
+const roots=[],lbl=(s,p,near)=>{LB.push({s,p,near})};
+function island(x,z,r1,r2,c,top,u){const b=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,10,64),mat('#f3e3b3')),t=new THREE.Mesh(new THREE.CylinderGeometry(r1-12,r1-6,6,64),mat(c));b.position.set(x,3,z);t.position.set(x,11,z);b.receiveShadow=t.receiveShadow=true;sc.add(b,t);
+const rg=new THREE.Mesh(new THREE.TorusGeometry(r1-20,1.2,6,64),new THREE.MeshBasicMaterial({color:'#fcc419'}));rg.rotation.x=Math.PI/2;rg.position.set(x,14.3,z);sc.add(rg);
+const fm=new THREE.Mesh(new THREE.TorusGeometry(r2+2,3,8,64),new THREE.MeshBasicMaterial({color:'#fff',transparent:true,opacity:.5}));fm.rotation.x=Math.PI/2;fm.position.set(x,1,z);sc.add(fm);AN.push(t=>fm.scale.setScalar(1+.02*Math.sin(t*1.5+x)));
+if(u!==undefined){b.userData.z=t.userData.z=u;roots.push(b,t)}}
+island(0,0,80,86,'#ffffff');
+const hub=spr('⛑️ 工安中心',{fs:44,bg:'#fff',k:.6});hub.position.set(0,60,0);sc.add(hub);cyl(1.5,40,'#868e96',0,14,0,sc);
+Z.forEach((z,i)=>{const a=(-90+i*45)*Math.PI/180;z.x=Math.cos(a)*430;z.z=Math.sin(a)*300;island(z.x,z.z,124,136,z.c,0,i);
+const L=Math.hypot(z.x,z.z),dx=z.x/L,dz=z.z/L,s0=60,s1=L-108,len=s1-s0,mx=dx*(s0+s1)/2,mz=dz*(s0+s1)/2,ry=Math.atan2(dx,dz);
+const br=box(22,4,len,'#b5a47f',mx,9,mz,sc),st=box(1.2,.3,len,'#fff',mx,13,mz,sc);br.rotation.y=st.rotation.y=ry;
+const nm=spr(z.e+' '+z.n,{fs:44,bg:z.c,k:.7,pick:true});nm.position.set(z.x,92,z.z);nm.userData.z=i;sc.add(nm);roots.push(nm);
+const fl=spr([z.o,z.f],{fs:26,bg:'rgba(255,255,255,.88)',k:.34});fl.position.set(z.x,34,z.z+IR+8);sc.add(fl);lbl(fl,fl.position,520);
+const n=z.r.length,rad=n<=3?50:68;
+z.it=z.r.map((rn,j)=>{const t=(-90+j*360/n)*Math.PI/180,px=Math.cos(t)*rad,pz=Math.sin(t)*rad,g=B[rn]();g.position.set(z.x+px,GY,z.z+pz);g.rotation.y=Math.atan2(-px,-pz);g.userData={z:i,j};
+sc.add(g);g.updateMatrixWorld(true);const top=Math.max(20,new THREE.Box3().setFromObject(g).max.y-GY),[em,tp]=R[rn];
+const ic=spr(em,{fs:44,k:.3});ic.position.y=top+10;g.add(ic);AN.push(t=>{ic.position.y=top+10+Math.sin(t*2+j)*2});
+const lb=spr(rn,{fs:28,bg:'rgba(255,255,255,.9)',k:.26});lb.position.y=top+25;g.add(lb);lbl(lb,V(z.x+px,GY+top+25,z.z+pz),620);
+const tip=spr(tp.split('、'),{fs:24,bg:'rgba(255,248,200,.92)',k:.18});tip.position.y=top+45;g.add(tip);lbl(tip,V(z.x+px,GY+top+45,z.z+pz),300);
+roots.push(g);return{g,x:z.x+px,z:z.z+pz,px,pz}})});
+const sel=new THREE.Mesh(new THREE.RingGeometry(24,29,40),new THREE.MeshBasicMaterial({color:'#ffd43b',side:2,transparent:true,opacity:.9}));sel.rotation.x=-Math.PI/2;sel.visible=false;sc.add(sel);AN.push(t=>sel.scale.setScalar(1+.1*Math.sin(t*5)));
+/* workers */
+const NM=['阿明','小華','志強','美玲','大雄','佳穎','建宏','雅婷','俊傑','怡君','文彬','淑芬'],VS=['#f76707','#1c7ed6','#2f9e44','#e03131'];
+const edge=z=>{const a=Math.atan2(-z.z,-z.x);return[z.x+Math.cos(a)*(IR-10),z.z+Math.sin(a)*(IR-10)]};
+const stand=(z,it)=>{const L=Math.hypot(it.px,it.pz)||1;return[it.x-it.px/L*18,it.z-it.pz/L*18]};
+const WK=NM.map((n,k)=>{const c=k%8,z=Z[c],it=z.it[k%z.it.length],g=person(VS[k%4]);g.scale.setScalar(1.25);const s=stand(z,it);g.position.set(s[0],GY,s[1]);sc.add(g);
+const nl=spr(n,{fs:26,bg:'rgba(255,255,255,.85)',k:.14});nl.position.y=26;g.add(nl);const bb=spr('',{fs:26,bg:'#fff',k:.14});bb.position.y=36;bb.visible=false;g.add(bb);
+return{n,g,x:s[0],z:s[1],c,path:[],wait:Math.random()*3,say:'',shown:null,ph:0,nl,bb,face:0}});
+function plan(w){let t;do t=Math.random()*8|0;while(t===w.c);const it=Math.random()*Z[t].it.length|0,p=Z[t].it[it];w.tg={t,it};w.path=[edge(Z[w.c]),[(Math.random()-.5)*60,(Math.random()-.5)*60],edge(Z[t]),stand(Z[t],p)]}
+function step(w,dt){if(w.wait>0){w.wait-=dt;if(w.wait<=0){w.say='';plan(w)}return 0}
+const p=w.path[0];if(!p){plan(w);return 0}const dx=p[0]-w.x,dz=p[1]-w.z,d=Math.hypot(dx,dz);
+if(d<2){w.path.shift();if(!w.path.length){w.c=w.tg.t;w.wait=3+Math.random()*3;const it=Z[w.c].it[w.tg.it];w.say=Z[w.c].r[w.tg.it]+'作業中';w.face=Math.atan2(it.x-w.x,it.z-w.z);w.g.rotation.y=w.face}return 0}
+const s=Math.min(d,48*dt);w.x+=dx/d*s;w.z+=dz/d*s;w.ph+=dt*11;w.g.rotation.y=Math.atan2(dx,dz);return 1}
+/* camera */
+const defD=()=>Math.max(1250,1450/cam.aspect),HOME=V(0,.62,.78).normalize();let tw=null,panelOpen=false;
+function flyTo(tg,d,dir){dir=dir||cam.position.clone().sub(oc.target).normalize();tw={t0:performance.now(),p0:cam.position.clone(),g0:oc.target.clone(),p1:tg.clone().add(dir.clone().multiplyScalar(d)),g1:tg.clone()}}
+oc.addEventListener('start',()=>{tw=null;oc.autoRotate&&0});
+function off(o){panelOpen=o;const W=app.clientWidth,H=app.clientHeight;if(!o)cam.clearViewOffset();else cam.setViewOffset(W,H,W<=700?0:170,W<=700?H*.2:0,W,H);cam.updateProjectionMatrix()}
+function rs(){const W=app.clientWidth,H=app.clientHeight;ren.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();if(panelOpen)off(true)}
+addEventListener('resize',rs);rs();cam.position.copy(HOME.clone().multiplyScalar(defD()));oc.target.set(0,0,0);oc.update();
+const dist=()=>cam.position.distanceTo(oc.target);
+const zoom=f=>{tw=null;const o=cam.position.clone().sub(oc.target);cam.position.copy(oc.target).add(o.multiplyScalar(f))};
+$('#zi').onclick=()=>zoom(.7);$('#zo').onclick=()=>zoom(1.4);
+const rot=a=>flyTo(oc.target,dist(),cam.position.clone().sub(oc.target).normalize().applyAxisAngle(V(0,1,0),a));
+$('#rl').onclick=()=>rot(Math.PI/4);$('#rr').onclick=()=>rot(-Math.PI/4);
+$('#tv').onclick=()=>flyTo(V(0,0,0),defD()*.95,V(0,1,.001).normalize());
+$('#iv').onclick=()=>{closeP();flyTo(V(0,0,0),defD(),HOME)};
+$('#ar').onclick=e=>{oc.autoRotate=!oc.autoRotate;e.currentTarget.classList.toggle('on',oc.autoRotate)};
+/* quiz */
+let prog={};try{prog=JSON.parse(localStorage.getItem('safeIsland')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('safeIsland',JSON.stringify(prog))}catch(e){}};
+const Q=[
+[['使用電動搬運車時，哪個做法正確？',['載人搬運比較快','限速行駛並注意行人','在通道上快速奔馳'],1,'電動搬運車禁止載人，轉彎與路口要減速。'],['拆箱時最安全的做法是？',['徒手撕開','使用安全刀具並戴防割手套','刀尖朝身體方向切割'],1,'用安全刀具、防割手套，刀口朝外，廢料隨手清。']],
+[['進入冷凍庫前應該？',['穿防寒衣與防滑鞋','穿短袖快進快出','不用特別準備'],0,'低溫與濕滑都有風險，要穿防寒衣與防滑鞋。'],['在冷凍庫停留太久可能？',['沒有影響','凍傷或失溫，應限制停留時間','更有精神'],1,'長時間低溫會凍傷、失溫，要限時並輪替。']],
+[['使用釘鎗作業時應該？',['對著人測試','戴護目鏡、避免誤擊，不用時斷氣源','拆掉安全裝置更順手'],1,'釘鎗誤擊很危險，務必保留安全裝置並斷氣源。'],['在高空作業車平台上應該？',['繫安全帶並確認護欄與地面穩固','站在護欄上取物','超載使用'],0,'作業前檢查護欄、地面與荷重，並繫好安全帶。']],
+[['發現化學品洩漏，第一步應該？',['用手直接擦掉','撤離周邊人員、穿戴防護並依SDS處理','直接沖入排水溝'],1,'先疏散與防護，再依SDS用吸附材處理。'],['化學品存放應該？',['隨意堆放','使用防漏托盤並分區標示','與其他物品混放'],1,'防漏托盤與分區標示可降低洩漏與混合反應風險。']],
+[['吊物下方可以？',['短暫通過','禁止站立或通行','適合休息'],1,'吊物下方嚴禁站立或通行，以免物品掉落。'],['護膜機運轉中卡住時應？',['伸手拉扯','按緊急停止、斷電後再處理','讓它繼續轉'],1,'先緊急停止並斷電，再處理卡住的膜。']],
+[['操作鋸床前應該？',['拆除護罩比較方便','確認護罩完整、工件固定並戴護目鏡','戴著手套靠近鋸片'],1,'護罩與工件固定是基本防護，旋轉機械附近不戴手套。'],['更換鋸片或清除切屑時應？',['機器運轉中進行','先停機並上鎖掛牌','動作快就沒事'],1,'停機、上鎖掛牌，確認完全停止才處理。']],
+[['進入自動倉儲作業區前應？',['直接進入','先停機上鎖並確認設備停止','翻越護欄進入'],1,'自動設備隨時可能啟動，進入前必須停機上鎖。'],['自動倉儲通道內應該？',['堆放雜物','保持通道淨空','停放堆高機'],1,'通道淨空才不會影響設備運行與緊急逃生。']],
+[['進入爆材庫前應該？',['接觸接地設備消除靜電、穿防靜電鞋','用手機拍照紀錄','穿化纖衣物'],0,'先消除靜電，禁止攜帶手機等可能引火的物品。'],['爆材領用應該？',['自行拿取','專人管制並登記數量帳務','多拿一些備用'],1,'專人管制與數量帳務，才能掌握爆材去向。']]];
+const isDone=i=>Q[i].every((_,k)=>prog[i+'-'+k]),nDone=()=>Z.filter((_,i)=>isDone(i)).length;
+function progUp(){const n=nDone(),p=$('#prog');p.innerHTML=(n===8?'🎓 全數通過！點此查看證書':'🏅 工安合格進度 '+n+'/8')+`<div class="bar"><i style="width:${n*12.5}%"></i></div>`;p.classList.toggle('full',n===8)}
+function chipsUp(){$('#chips').innerHTML=Z.map((z,i)=>`<button data-i="${i}">${isDone(i)?'✅':z.e} ${z.n}</button>`).join('')}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
+function quiz(i){let el=$('#qz');if(!el){$('#pc').insertAdjacentHTML('beforeend','<div id="qz"></div>');el=$('#qz')}
+el.innerHTML=`<div class="o" style="margin-top:12px"><b>🧠 安全小測驗（${Q[i].filter((_,k)=>prog[i+'-'+k]).length}/${Q[i].length}）</b>${isDone(i)?' ✅ 本島已通過':''}</div>`+Q[i].map((q,k)=>{const ok=prog[i+'-'+k],r=(i*2+k)%3;return`<div class="qb"><div class="qt">Q${k+1}. ${q[0]}</div>`+[0,1,2].map(n=>{const o=(n+r)%3;return`<button class="qo${ok&&o===q[2]?' ok':''}" data-i="${i}" data-k="${k}" data-o="${o}"${ok?' disabled':''}>${q[1][o]}</button>`}).join('')+`<div class="fb" id="fb${i}-${k}">${ok?'✅ '+q[3]:''}</div></div>`}).join('')}
+$('#pc').addEventListener('click',e=>{const b=e.target.closest('.qo');if(!b||b.disabled)return;const i=+b.dataset.i,k=+b.dataset.k,q=Q[i][k];
+if(+b.dataset.o===q[2]){const was=isDone(i);prog[i+'-'+k]=1;save();quiz(i);chipsUp();progUp();if(!was&&isDone(i))toast('🎉 '+Z[i].n+' 測驗通過！');if(nDone()===8)setTimeout(showCert,1200)}
+else{b.classList.add('bad');b.disabled=true;$('#fb'+i+'-'+k).textContent='❌ 不太對，再想想看～'}});
+function confetti(){const f=['🎉','✨','⭐','🎊','⛑️'];for(let i=0;i<40;i++){const s=document.createElement('span');s.className='cf';s.textContent=f[i%5];s.style.cssText=`left:${Math.random()*100}%;animation-duration:${2.5+Math.random()*2.5}s;animation-delay:${Math.random()*1.2}s;font-size:${16+Math.random()*18}px`;app.appendChild(s);setTimeout(()=>s.remove(),6500)}}
+function showCert(){$('#cert').style.display='flex';$('#cd').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});confetti()}
+$('#prog').onclick=()=>{if(nDone()===8)showCert()};
+$('#c1').onclick=()=>{$('#cert').style.display='none'};
+$('#c2').onclick=()=>{prog={};save();$('#cert').style.display='none';closeP();chipsUp();progUp()};
+try{$('#nm').value=localStorage.getItem('safeName')||''}catch(e){}
+$('#nm').oninput=e=>{try{localStorage.setItem('safeName',e.target.value)}catch(x){}};
+/* panel & pick */
+function closeP(){$('#p').style.display='none';sel.visible=false;off(false)}
+$('#x').onclick=closeP;
+function openZ(i,j){const z=Z[i];$('#pc').innerHTML=`<h2>${z.e} ${z.n}</h2><div class="o">${z.o}</div><div class="o">作業流程：${z.f}</div><div class="o"><b>工安風險（${z.r.length} 項）</b></div>`+z.r.map((nm,q)=>`<div class="r${q===j?' on':''}"><i>${R[nm][0]}</i><div><b>${nm}</b><span>${R[nm][1].replace(/、/g,'・')}</span></div></div>`).join('');
+$('#p').style.display='block';quiz(i);off(true);let tg;if(j>=0){const it=z.it[j];tg=V(it.x,GY+12,it.z);sel.position.set(it.x,GY+.8,it.z);sel.visible=true}else{tg=V(z.x,GY,z.z);sel.visible=false}flyTo(tg,j>=0?150:340)}
+chipsUp();progUp();
+$('#chips').onclick=e=>{const b=e.target.closest('button');if(b)openZ(+b.dataset.i,-1)};
+const rc=new THREE.Raycaster();let dn=null,pc=0;
+cv.addEventListener('pointerdown',e=>{pc++;dn=pc>1?null:[e.clientX,e.clientY]});
+cv.addEventListener('pointerup',e=>{pc=Math.max(0,pc-1);if(!dn)return;const m=Math.hypot(e.clientX-dn[0],e.clientY-dn[1]);dn=null;if(m>6)return;
+const r=cv.getBoundingClientRect();rc.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-((e.clientY-r.top)/r.height*2-1)},cam);const h=rc.intersectObjects(roots,true)[0];if(!h)return;let o=h.object;while(o&&o.userData.z===undefined)o=o.parent;if(o)openZ(o.userData.z,o.userData.j===undefined?-1:o.userData.j)});
+cv.addEventListener('pointercancel',()=>{pc=0;dn=null});
+/* loop */
+let last=performance.now();
+function loop(now){requestAnimationFrame(loop);const dt=Math.min((now-last)/1000,.1),t=now/1000;last=now;
+if(tw){const u=Math.min(1,(now-tw.t0)/750),e=1-Math.pow(1-u,3);cam.position.lerpVectors(tw.p0,tw.p1,e);oc.target.lerpVectors(tw.g0,tw.g1,e);if(u>=1)tw=null}
+oc.update();AN.forEach(f=>f(t,dt));
+WK.forEach(w=>{const mv=step(w,dt),u=w.g.userData;w.g.position.set(w.x,GY+(mv?Math.abs(Math.sin(w.ph))*.8:0),w.z);
+if(mv){u.legs[0].rotation.x=Math.sin(w.ph)*.7;u.legs[1].rotation.x=-Math.sin(w.ph)*.7;u.arms[0].rotation.x=-Math.sin(w.ph)*.6;u.arms[1].rotation.x=Math.sin(w.ph)*.6}
+else{u.legs[0].rotation.x=u.legs[1].rotation.x=0;u.arms[0].rotation.x=-1+Math.sin(t*8)*.3;u.arms[1].rotation.x=-.8}
+if(w.shown!==w.say){w.shown=w.say;if(w.say)w.bb.set(w.say)}
+const d=cam.position.distanceTo(w.g.position);w.nl.visible=d<320;w.bb.visible=!!w.say&&d<650});
+LB.forEach(l=>{l.s.visible=cam.position.distanceTo(l.p)<l.near});
+ren.render(sc,cam)}
+requestAnimationFrame(loop);
+</script></body></html>
